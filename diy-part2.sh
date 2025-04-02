@@ -32,3 +32,19 @@ cp -r packages-0f7be9fc93d68986c179829d8199824d3183eb60/net/frp feeds/packages/n
 rm -rf OldPackages.zip packages-0f7be9fc93d68986c179829d8199824d3183eb60s
 sed -i 's/PKG_VERSION:=0.53.2/PKG_VERSION:=0.61.2/' feeds/packages/net/frp/Makefile
 sed -i 's/PKG_HASH:=ff2a4f04e7732bc77730304e48f97fdd062be2b142ae34c518ab9b9d7a3b32ec/PKG_HASH:=19600d944e05f7ed95bac53c18cbae6ce7eff859c62b434b0c315ca72acb1d3c/' feeds/packages/net/frp/Makefile
+
+# 克隆 coolsnowwolf 的 luci 和 packages 仓库
+git clone https://github.com/coolsnowwolf/luci.git coolsnowwolf-luci
+git clone https://github.com/coolsnowwolf/packages.git coolsnowwolf-packages
+
+# 替换luci-app-zerotier
+rm -rf feeds/luci/applications/luci-app-zerotier
+cp -r coolsnowwolf-luci/applications/luci-app-zerotier feeds/luci/applications
+
+# 替换zerotier
+rm -rf feeds/packages/net/zerotier
+cp -r coolsnowwolf-packages/net/zerotier feeds/packages/net
+
+# 删除克隆的 coolsnowwolf-luci 和 coolsnowwolf-packages 仓库
+rm -rf coolsnowwolf-luci
+rm -rf coolsnowwolf-packages
