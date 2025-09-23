@@ -19,6 +19,10 @@
 # Modify hostname
 #sed -i 's/OpenWrt/P3TERX-Router/g' package/base-files/files/bin/config_generate
 
+# 移除 openwrt feeds 自带的核心包
+rm -rf feeds/packages/net/{xray-core,xray-plugin,v2ray-core,v2ray-plugin,v2ray-geodata,sing-box,hysteria,naiveproxy,shadowsocks-rust,shadow-tls,tuic-client,microsocks,chinadns-ng,dns2socks,ipt2socks}
+rm -rf feeds/luci/applications/{luci-app-passwall,luci-app-ssr-plus}
+
 # 修改gn、rust为可编译版本
 rm -rf feeds/packages/devel/gn
 rm -rf feeds/packages/lang/rust
