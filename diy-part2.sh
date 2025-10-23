@@ -28,13 +28,13 @@ cp -r feeds/passwall/luci-app-passwall feeds/luci/applications
 cp -r feeds/helloworld/luci-app-ssr-plus feeds/luci/applications
 
 # 修改gn、rust为可编译版本
-rm -rf feeds/packages/devel/gn
-rm -rf feeds/packages/lang/rust
-wget https://github.com/immortalwrt/packages/archive/a22edf48a23edfcfe212d2dbb83830d69dbb5f2f.zip -O immortalwrtPackages.zip
-unzip immortalwrtPackages.zip
-cp -r packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f/devel/gn feeds/packages/devel/
-cp -r packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f/lang/rust feeds/packages/lang/
-rm -rf immortalwrtPackages.zip packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f
+#rm -rf feeds/packages/devel/gn
+#rm -rf feeds/packages/lang/rust
+#wget https://github.com/immortalwrt/packages/archive/a22edf48a23edfcfe212d2dbb83830d69dbb5f2f.zip -O immortalwrtPackages.zip
+#unzip immortalwrtPackages.zip
+#cp -r packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f/devel/gn feeds/packages/devel/
+#cp -r packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f/lang/rust feeds/packages/lang/
+#rm -rf immortalwrtPackages.zip packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f
 
 # 修改golang源码以编译xray1.8.8+版本
 rm -rf feeds/packages/lang/golang
