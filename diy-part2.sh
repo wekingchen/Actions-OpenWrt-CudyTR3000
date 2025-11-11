@@ -48,9 +48,17 @@ sed -i 's/PKG_HASH:=4f9f40b27c5a78389ed3f3216c850921f6298749e5819e9f2edabb2672ce
 # 1) 在 include python3-package.mk 之后插入 host 依赖（若尚未存在）
 grep -q 'python3-setuptools/host' feeds/packages/net/nmap/Makefile || \
 sed -i '/^include ..\/..\/lang\/python\/python3-package\.mk/a PKG_BUILD_DEPENDS += python3\/host python3-setuptools\/host' feeds/packages/net/nmap/Makefile
-# 2) 仅在选中 ndiff 时执行 Py3Build/Compile（幂等）
+# 2) 仅在选中 ndiff 时才执行 Py3Build/Compile（幂等）
 grep -q 'CONFIG_PACKAGE_ndiff' feeds/packages/net/nmap/Makefile || \
-sed -i '/\$(call Py3Build\/Compile)/{i ifneq ($(CONFIG_PACKAGE_ndiff),)\na endif\n}' feeds/packages/net/nmap/Makefile
-# 3) 仅在选中 ndiff 时执行 Py3Build/Install（幂等）
+sed -i '/\$(call Py3Build\/Compile)/{i\
+ifneq ($(CONFIG_PACKAGE_ndiff),)\
+a\
+endif
+}' feeds/packages/net/nmap/Makefile
+# 3) 仅在选中 ndiff 时才执行 Py3Build/Install（幂等）
 grep -q 'CONFIG_PACKAGE_ndiff' feeds/packages/net/nmap/Makefile || \
-sed -i '/\$(call Py3Build\/Install)/{i ifneq ($(CONFIG_PACKAGE_ndiff),)\na endif\n}' feeds/packages/net/nmap/Makefile
+sed -i '/\$(call Py3Build\/Install)/{i\
+ifneq ($(CONFIG_PACKAGE_ndiff),)\
+a\
+endif
+}' feeds/packages/net/nmap/Makefile
