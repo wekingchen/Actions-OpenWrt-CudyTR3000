@@ -27,19 +27,9 @@ cp -r feeds/helloworld/v2ray-core feeds/packages/net/
 cp -r feeds/passwall/luci-app-passwall feeds/luci/applications
 cp -r feeds/helloworld/luci-app-ssr-plus feeds/luci/applications
 
-# 修改gn、rust为可编译版本
-#rm -rf feeds/packages/devel/gn
-#rm -rf feeds/packages/lang/rust
-#wget https://github.com/immortalwrt/packages/archive/a22edf48a23edfcfe212d2dbb83830d69dbb5f2f.zip -O immortalwrtPackages.zip
-#unzip immortalwrtPackages.zip
-#cp -r packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f/devel/gn feeds/packages/devel/
-#cp -r packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f/lang/rust feeds/packages/lang/
-#rm -rf immortalwrtPackages.zip packages-a22edf48a23edfcfe212d2dbb83830d69dbb5f2f
-
 # 修改golang源码以编译xray1.8.8+版本
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
-# sed -i '/-linkmode external \\/d' feeds/packages/lang/golang/golang-package.mk
 
 # 修改frp版本为官网最新v0.65.0 https://github.com/fatedier/frp 格式：https://codeload.github.com/fatedier/frp/tar.gz/v${PKG_VERSION}?
 rm -rf feeds/packages/net/frp
@@ -53,3 +43,14 @@ sed -i 's/PKG_HASH:=ff2a4f04e7732bc77730304e48f97fdd062be2b142ae34c518ab9b9d7a3b
 # 升级zerotier到官方最新版本1.14.2
 sed -i 's/PKG_VERSION:=1.14.1/PKG_VERSION:=1.14.2/' feeds/packages/net/zerotier/Makefile
 sed -i 's/PKG_HASH:=4f9f40b27c5a78389ed3f3216c850921f6298749e5819e9f2edabb2672ce9ca0/PKG_HASH:=c2f64339fccf5148a7af089b896678d655fbfccac52ddce7714314a59d7bddbb/' feeds/packages/net/zerotier/Makefile
+
+# 修复 nmap ndiff 在 Python 3.13 下编译失败的问题
+# 1) 在 include python3-package.mk 之后插入 host 依赖（若尚未存在）
+grep -q 'python3-setuptools/host' feeds/packages/net/nmap/Makefile || \
+sed -i '/^include ..\/..\/lang\/python\/python3-package\.mk/a PKG_BUILD_DEPENDS += python3\/host python3-setuptools\/host' feeds/packages/net/nmap/Makefile
+# 2) 仅在选中 ndiff 时执行 Py3Build/Compile（幂等）
+grep -q 'CONFIG_PACKAGE_ndiff' feeds/packages/net/nmap/Makefile || \
+sed -i '/\$(call Py3Build\/Compile)/{i ifneq ($(CONFIG_PACKAGE_ndiff),)\na endif\n}' feeds/packages/net/nmap/Makefile
+# 3) 仅在选中 ndiff 时执行 Py3Build/Install（幂等）
+grep -q 'CONFIG_PACKAGE_ndiff' feeds/packages/net/nmap/Makefile || \
+sed -i '/\$(call Py3Build\/Install)/{i ifneq ($(CONFIG_PACKAGE_ndiff),)\na endif\n}' feeds/packages/net/nmap/Makefile
