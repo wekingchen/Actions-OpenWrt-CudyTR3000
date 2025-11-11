@@ -44,21 +44,14 @@ sed -i 's/PKG_HASH:=ff2a4f04e7732bc77730304e48f97fdd062be2b142ae34c518ab9b9d7a3b
 sed -i 's/PKG_VERSION:=1.14.1/PKG_VERSION:=1.14.2/' feeds/packages/net/zerotier/Makefile
 sed -i 's/PKG_HASH:=4f9f40b27c5a78389ed3f3216c850921f6298749e5819e9f2edabb2672ce9ca0/PKG_HASH:=c2f64339fccf5148a7af089b896678d655fbfccac52ddce7714314a59d7bddbb/' feeds/packages/net/zerotier/Makefile
 
-# 修复 nmap ndiff 在 Python 3.13 下编译失败的问题
-# 1) 在 include python3-package.mk 之后插入 host 依赖（若尚未存在）
+# --- Fix nmap ndiff build under Python 3.13 ---
+# 1) 在 include python3-package.mk 之后追加 host 端依赖（若未存在）
 grep -q 'python3-setuptools/host' feeds/packages/net/nmap/Makefile || \
 sed -i '/^include ..\/..\/lang\/python\/python3-package\.mk/a PKG_BUILD_DEPENDS += python3\/host python3-setuptools\/host' feeds/packages/net/nmap/Makefile
-# 2) 仅在选中 ndiff 时才执行 Py3Build/Compile（幂等）
-grep -q 'CONFIG_PACKAGE_ndiff' feeds/packages/net/nmap/Makefile || \
-sed -i '/\$(call Py3Build\/Compile)/{i\
-ifneq ($(CONFIG_PACKAGE_ndiff),)\
-a\
-endif
-}' feeds/packages/net/nmap/Makefile
-# 3) 仅在选中 ndiff 时才执行 Py3Build/Install（幂等）
-grep -q 'CONFIG_PACKAGE_ndiff' feeds/packages/net/nmap/Makefile || \
-sed -i '/\$(call Py3Build\/Install)/{i\
-ifneq ($(CONFIG_PACKAGE_ndiff),)\
-a\
-endif
-}' feeds/packages/net/nmap/Makefile
+# 2) 仅在选中 ndiff 时才执行 Py3Build/Compile
+#    如果这一行尚未被包裹，就替换成 ifneq/endif 包裹块（使用 \n 生成新行）
+grep -q '^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
+sed -i 's#^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Compile)\nendif#' feeds/packages/net/nmap/Makefile
+# 3) 仅在选中 ndiff 时才执行 Py3Build/Install（同理）
+grep -q '^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
+sed -i 's#^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Install)\nendif#' feeds/packages/net/nmap/Makefile
