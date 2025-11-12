@@ -46,12 +46,12 @@ sed -i 's/PKG_HASH:=4f9f40b27c5a78389ed3f3216c850921f6298749e5819e9f2edabb2672ce
 
 # --- Fix nmap ndiff build under Python 3.13 ---
 # 1) 在 include python3-package.mk 之后追加 host 端依赖（若未存在）
-grep -q 'python3-setuptools/host' feeds/packages/net/nmap/Makefile || \
-sed -i '/^include ..\/..\/lang\/python\/python3-package\.mk/a PKG_BUILD_DEPENDS += python3\/host python3-setuptools\/host' feeds/packages/net/nmap/Makefile
+#grep -q 'python3-setuptools/host' feeds/packages/net/nmap/Makefile || \
+#sed -i '/^include ..\/..\/lang\/python\/python3-package\.mk/a PKG_BUILD_DEPENDS += python3\/host python3-setuptools\/host' feeds/packages/net/nmap/Makefile
 # 2) 仅在选中 ndiff 时才执行 Py3Build/Compile
 #    如果这一行尚未被包裹，就替换成 ifneq/endif 包裹块（使用 \n 生成新行）
-grep -q '^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
-sed -i 's#^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Compile)\nendif#' feeds/packages/net/nmap/Makefile
+#grep -q '^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
+#sed -i 's#^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Compile)\nendif#' feeds/packages/net/nmap/Makefile
 # 3) 仅在选中 ndiff 时才执行 Py3Build/Install（同理）
-grep -q '^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
-sed -i 's#^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Install)\nendif#' feeds/packages/net/nmap/Makefile
+#grep -q '^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
+#sed -i 's#^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Install)\nendif#' feeds/packages/net/nmap/Makefile
