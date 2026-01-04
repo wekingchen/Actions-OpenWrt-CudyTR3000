@@ -44,6 +44,9 @@ sed -i 's/PKG_HASH:=ff2a4f04e7732bc77730304e48f97fdd062be2b142ae34c518ab9b9d7a3b
 sed -i 's/PKG_VERSION:=1.14.1/PKG_VERSION:=1.14.2/' feeds/packages/net/zerotier/Makefile
 sed -i 's/PKG_HASH:=4f9f40b27c5a78389ed3f3216c850921f6298749e5819e9f2edabb2672ce9ca0/PKG_HASH:=c2f64339fccf5148a7af089b896678d655fbfccac52ddce7714314a59d7bddbb/' feeds/packages/net/zerotier/Makefile
 
+# 修正jq源码的APK元数据错误
+sed -i '/^[[:space:]]*PROVIDES:=jq[[:space:]]*$/d' feeds/packages/utils/jq/Makefile
+
 # --- Fix nmap ndiff build under Python 3.13 ---
 # 1) 在 include python3-package.mk 之后追加 host 端依赖（若未存在）
 grep -q 'python3-setuptools/host' feeds/packages/net/nmap/Makefile || \
