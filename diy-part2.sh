@@ -29,7 +29,7 @@ cp -r feeds/helloworld/luci-app-ssr-plus feeds/luci/applications
 
 # 修改golang源码以编译xray1.8.8+版本
 rm -rf feeds/packages/lang/golang
-git clone https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
+git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 
 # 修改frp版本为官网最新v0.66.0 https://github.com/fatedier/frp 格式：https://codeload.github.com/fatedier/frp/tar.gz/v${PKG_VERSION}?
 rm -rf feeds/packages/net/frp
