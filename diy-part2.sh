@@ -27,6 +27,10 @@ cp -r feeds/helloworld/v2ray-core feeds/packages/net/
 cp -r feeds/passwall/luci-app-passwall feeds/luci/applications
 cp -r feeds/helloworld/luci-app-ssr-plus feeds/luci/applications
 
+sed -i 's/^PKG_MIRROR_HASH:=.*/PKG_MIRROR_HASH:=skip/' \
+  feeds/helloworld/shadowsocks-libev/Makefile
+
+
 # 修改golang源码以编译xray1.8.8+版本
 rm -rf feeds/packages/lang/golang
 git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
