@@ -137,69 +137,161 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
-        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
-        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
+        # 并行编译失败后降级到单线程，最后一次仍失败则整个步骤失败
+        make -j$(nproc) || make -j1 || make -j1 V=s
+
+        # 只有 make 真正成功，才会运行到这里
+        echo "status=success" >> "$GITHUB_OUTPUT"
+
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config \
+          | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+
+        [ -s DEVICE_NAME ] && \
+          echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> "$GITHUB_ENV"
+
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> "$GITHUB_ENV"
+
+    # 即使编译失败，也保留磁盘状态用于排错
     - name: Check space usage
-      if: (!cancelled())
+      if: ${{ !cancelled() }}
       run: df -hT
 
     - name: Upload bin directory
       uses: actions/upload-artifact@main
-      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      if: ${{ success() && steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true' }}
       with:
         name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: openwrt/bin
+        if-no-files-found: error
 
-    - name: Organize files
+    # 核心保险：
+    # 不再把整个 targets 目录直接视为“固件”
+    # 必须真正找到 Cudy TR3000 256MB 的 sysupgrade.bin 或 factory.bin
+    - name: Verify TR3000 firmware
       id: organize
-      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      if: ${{ success() && steps.compile.outputs.status == 'success' && (env.UPLOAD_FIRMWARE == 'true' || env.UPLOAD_RELEASE == 'true') }}
+      shell: bash
       run: |
-        cd openwrt/bin/targets/*/*
-        rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
+        set -euo pipefail
+
+        FIRMWARE_DIR="$GITHUB_WORKSPACE/openwrt/bin/targets/mediatek/filogic"
+        RELEASE_DIR="$GITHUB_WORKSPACE/tr3000-firmware"
+
+        echo "=========================================="
+        echo "Verify Cudy TR3000 256MB firmware"
+        echo "=========================================="
+        echo "Firmware directory:"
+        echo "$FIRMWARE_DIR"
+        echo
+
+        if [ ! -d "$FIRMWARE_DIR" ]; then
+          echo "::error::Firmware directory does not exist: $FIRMWARE_DIR"
+          exit 1
+        fi
+
+        echo "Generated files:"
+        ls -lh "$FIRMWARE_DIR"
+        echo
+
+        # 创建一个干净的发布目录
+        # Release / Artifact 后续只允许从这里取文件
+        rm -rf "$RELEASE_DIR"
+        mkdir -p "$RELEASE_DIR"
+
+        # 只接受：
+        # Cudy TR3000 256MB sysupgrade.bin
+        # Cudy TR3000 256MB factory.bin
+        mapfile -d '' FIRMWARE_FILES < <(
+          find "$FIRMWARE_DIR" \
+            -maxdepth 1 \
+            -type f \
+            -size +0c \
+            \( \
+              -iname '*cudy*tr3000*256mb*sysupgrade.bin' \
+              -o \
+              -iname '*cudy*tr3000*256mb*factory.bin' \
+            \) \
+            -print0
+        )
+
+        if [ "${#FIRMWARE_FILES[@]}" -eq 0 ]; then
+          echo
+          echo "::error::Cudy TR3000 256MB firmware was not generated."
+          echo "::error::Expected sysupgrade.bin or factory.bin."
+          echo
+          echo "Files currently present:"
+          find "$FIRMWARE_DIR" -maxdepth 1 -type f -printf '%f\n' | sort
+          exit 1
+        fi
+
+        echo "Verified firmware:"
+        for file in "${FIRMWARE_FILES[@]}"; do
+          echo "  $(basename "$file")"
+          cp -v "$file" "$RELEASE_DIR/"
+        done
+
+        echo
+        echo "Files allowed for publishing:"
+        ls -lh "$RELEASE_DIR"
+
+        # 后续所有发布操作只使用这个干净目录
+        echo "FIRMWARE=$RELEASE_DIR" >> "$GITHUB_ENV"
+        echo "status=success" >> "$GITHUB_OUTPUT"
 
     - name: Upload firmware directory
       uses: actions/upload-artifact@main
-      if: steps.organize.outputs.status == 'success' && !cancelled()
+      if: ${{ success() && steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true' }}
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
+        if-no-files-found: error
 
     - name: Generate release tag
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: ${{ success() && steps.compile.outputs.status == 'success' && steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' }}
       run: |
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")-256M" >> $GITHUB_OUTPUT
-        touch release.txt
-        [ ${UPLOAD_GOFILE} = true && ${{ steps.gofile.outputs.url }} ] && echo "🔗 [GoFile](${{ steps.gofile.outputs.url }})" >> release.txt
-        echo "status=success" >> $GITHUB_OUTPUT
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")-256M" >> "$GITHUB_OUTPUT"
+
+        cat > release.txt << 'EOF'
+        Cudy TR3000 256MB OpenWrt Firmware
+        EOF
+
+        echo "status=success" >> "$GITHUB_OUTPUT"
 
     - name: Upload firmware to release
-      uses: softprops/action-gh-release@master
-      if: steps.tag.outputs.status == 'success' && !cancelled()
+      id: release
+      uses: softprops/action-gh-release@v3
+      if: ${{ success() && steps.tag.outputs.status == 'success' && steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*
 
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
-      with:
-        retain_days: 0
-        keep_minimum_runs: 2
+        # 注意：
+        # 这里不再使用 openwrt/bin/targets/.../*
+        # 只发布经过 Verify 步骤验证并复制过来的真正固件
+        files: |
+          ${{ env.FIRMWARE }}/*
 
+        fail_on_unmatched_files: true
+
+    # 只有新 Release 真正创建成功后，才清理旧 Release
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@master
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: ${{ success() && steps.release.outcome == 'success' && env.UPLOAD_RELEASE == 'true' }}
       with:
         keep_latest: 10
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # 同样只有整个构建 + Release 成功后才删除旧 workflow runs
+    # 编译失败时保留失败日志，方便排查
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      if: ${{ success() && steps.release.outcome == 'success' }}
+      with:
+        retain_days: 0
+        keep_minimum_runs: 2
