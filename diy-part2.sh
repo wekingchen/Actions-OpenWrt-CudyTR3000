@@ -62,3 +62,5 @@ sed -i 's#^[[:space:]]*\$(call Py3Build/Compile)[[:space:]]*$#ifneq ($(CONFIG_PA
 # 3) 仅在选中 ndiff 时才执行 Py3Build/Install（同理）
 grep -q '^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$' feeds/packages/net/nmap/Makefile && \
 sed -i 's#^[[:space:]]*\$(call Py3Build/Install)[[:space:]]*$#ifneq ($(CONFIG_PACKAGE_ndiff),)\n\t$(call Py3Build/Install)\nendif#' feeds/packages/net/nmap/Makefile
+./scripts/feeds uninstall upx  # 移除已安装的旧 UPX 包入口
+./scripts/feeds install -p helloworld upx  # 优先使用 helloworld 提供的 UPX
